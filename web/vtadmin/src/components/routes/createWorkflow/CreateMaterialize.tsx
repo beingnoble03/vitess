@@ -70,7 +70,7 @@ export const CreateMaterialize = () => {
 
     const [clusterKeyspaces, setClusterKeyspaces] = useState<vtadmin.Keyspace[]>([]);
 
-    const [targetTables, setTargetTables] = useState<string[]>([]);
+    const [sourceTables, setSourceTables] = useState<string[]>([]);
 
     const [errorDialogOpen, setErrorDialogOpen] = useState<boolean>(false);
 
@@ -135,7 +135,7 @@ export const CreateMaterialize = () => {
         !!formData.sourceKeyspace &&
         !!formData.targetKeyspace &&
         !!formData.workflow &&
-        !!formData.tableSettings;
+        !!(formData.tableSettings || formData.referenceTables.length);
 
     const isDisabled = !isValid || mutation.isLoading;
 
@@ -159,16 +159,16 @@ export const CreateMaterialize = () => {
     useEffect(() => {
         // Clear out the selected tables if the source keypsace is changed.
         setFormData((prevFormData) => ({ ...prevFormData, tables: [] }));
-        setTargetTables([]);
+        setSourceTables([]);
         if (schemas) {
             const schemaData = schemas.find(
-                (s) => s.keyspace === formData.targetKeyspace && s.cluster?.id === formData.clusterID
+                (s) => s.keyspace === formData.sourceKeyspace && s.cluster?.id === formData.clusterID
             );
             if (schemaData) {
-                setTargetTables(schemaData?.table_definitions.map((def) => def.name || ''));
+                setSourceTables(schemaData?.table_definitions.map((def) => def.name || ''));
             }
         }
-    }, [formData.targetKeyspace, formData.clusterID, schemas]);
+    }, [formData.sourceKeyspace, formData.clusterID, schemas]);
 
     return (
         <div>
@@ -269,9 +269,9 @@ export const CreateMaterialize = () => {
                         <MultiSelect
                             className="block grow min-w-[300px] max-w-screen-md"
                             inputClassName="block w-full"
-                            items={targetTables}
+                            items={sourceTables}
                             selectedItems={formData.referenceTables}
-                            disabled={!formData.targetKeyspace}
+                            disabled={!formData.sourceKeyspace || !!formData.tableSettings}
                             label="Reference Tables"
                             helpText={'Reference tables to materialize on every target shard'}
                             onChange={(referenceTables) => setFormData({ ...formData, referenceTables })}
